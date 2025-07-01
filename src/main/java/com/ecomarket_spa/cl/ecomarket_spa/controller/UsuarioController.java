@@ -1,193 +1,97 @@
 package com.ecomarket_spa.cl.ecomarket_spa.controller;
 
+import com.ecomarket_spa.cl.ecomarket_spa.hateoas.UsuarioModelAssembler;
 import com.ecomarket_spa.cl.ecomarket_spa.model.Usuario;
 import com.ecomarket_spa.cl.ecomarket_spa.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
-import org.springframework.http.HttpStatus;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@Tag(name = "Gestión de Usuarios", description = "API para operaciones CRUD de usuarios")
+@Tag(name = "Gestión de Usuarios", description = "API para operaciones CRUD de usuarios con HATEOAS")
 public class UsuarioController {
 
     @Autowired
     private UsuarioService usuarioService;
 
-    @Operation(
-        summary = "Obtener todos los usuarios",
-        description = "Retorna una lista completa de usuarios registrados en el sistema"
-    )
-    @ApiResponse(
-        responseCode = "200",
-        description = "Lista de usuarios encontrada",
-        content = @Content(schema = @Schema(implementation = Usuario[].class))
-    )
+    @Autowired
+    private UsuarioModelAssembler usuarioAssembler;
+
+    @Operation(summary = "Obtener todos los usuarios")
     @GetMapping
-    public ResponseEntity<List<Usuario>> obtenerTodos() {
-        return ResponseEntity.ok(usuarioService.findAll());
+    public ResponseEntity<CollectionModel<EntityModel<Usuario>>> obtenerTodos() {
+        List<EntityModel<Usuario>> usuarios = usuarioService.findAll().stream()
+                .map(usuarioAssembler::toModel)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+                CollectionModel.of(usuarios, linkTo(methodOn(UsuarioController.class).obtenerTodos()).withSelfRel())
+        );
     }
 
-    @Operation(
-        summary = "Buscar usuario por RUN",
-        description = "Obtiene los detalles de un usuario específico usando su RUN"
-    )
-    @ApiResponse(
-        responseCode = "200",
-        description = "Usuario encontrado",
-        content = @Content(schema = @Schema(implementation = Usuario.class))
-    )
-    @ApiResponse(
-        responseCode = "404",
-        description = "Usuario no encontrado"
-    )
+    @Operation(summary = "Buscar usuario por RUN")
     @GetMapping("/{run}")
-    public ResponseEntity<Usuario> obtenerPorRun(
-        @Parameter(
-            description = "RUN del usuario (formato: 12345678-9)",
-            example = "12345678-9",
-            required = true
-        )
-        @PathVariable String run
-    ) {
+    public ResponseEntity<EntityModel<Usuario>> obtenerPorRun(@PathVariable String run) {
         return usuarioService.findByRun(run)
+                .map(usuarioAssembler::toModel)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(
-        summary = "Crear nuevo usuario",
-        description = "Registra un nuevo usuario en el sistema"
-    )
-    @ApiResponse(
-        responseCode = "201",
-        description = "Usuario creado exitosamente",
-        content = @Content(schema = @Schema(implementation = Usuario.class))
-    )
-    @ApiResponse(
-        responseCode = "400",
-        description = "Datos de usuario inválidos"
-    )
+    @Operation(summary = "Crear nuevo usuario")
     @PostMapping
-    public ResponseEntity<Usuario> crear(
-        @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Datos del nuevo usuario",
-            required = true,
-            content = @Content(schema = @Schema(implementation = Usuario.class))
-        )
-        @RequestBody Usuario usuario
-    ) {
-        return new ResponseEntity<>(usuarioService.save(usuario), HttpStatus.CREATED);
+    public ResponseEntity<EntityModel<Usuario>> crear(@RequestBody Usuario usuario) {
+        Usuario nuevoUsuario = usuarioService.save(usuario);
+        EntityModel<Usuario> resource = usuarioAssembler.toModel(nuevoUsuario);
+
+        return ResponseEntity
+                .created(resource.getRequiredLink("self").toUri())
+                .body(resource);
     }
 
-    @Operation(
-        summary = "Actualizar usuario existente",
-        description = "Actualiza la información de un usuario usando su RUN"
-    )
-    @ApiResponse(
-        responseCode = "200",
-        description = "Usuario actualizado exitosamente",
-        content = @Content(schema = @Schema(implementation = Usuario.class))
-    )
-    @ApiResponse(
-        responseCode = "404",
-        description = "Usuario no encontrado"
-    )
+    @Operation(summary = "Actualizar usuario existente")
     @PutMapping("/{run}")
-    public ResponseEntity<Usuario> actualizar(
-        @Parameter(
-            description = "RUN del usuario a actualizar",
-            example = "12345678-9",
-            required = true
-        )
-        @PathVariable String run,
-
-        @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Datos actualizados del usuario",
-            required = true,
-            content = @Content(schema = @Schema(implementation = Usuario.class))
-        )
-        @RequestBody Usuario usuarioActualizado
-    ) {
-        Optional<Usuario> usuarioExistente = usuarioService.findByRun(run);
-
-        if (usuarioExistente.isPresent()) {
-            Usuario usuario = usuarioExistente.get();
-            usuario.setNombre(usuarioActualizado.getNombre());
-            usuario.setApellido(usuarioActualizado.getApellido());
-            usuario.setCorreo(usuarioActualizado.getCorreo());
-            usuario.setPassword(usuarioActualizado.getPassword());
-
-            return ResponseEntity.ok(usuarioService.save(usuario));
-        }
-
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<EntityModel<Usuario>> actualizar(@PathVariable String run, @RequestBody Usuario usuarioActualizado) {
+        return usuarioService.findByRun(run)
+            .map(usuario -> {
+                usuario.setNombre(usuarioActualizado.getNombre());
+                usuario.setApellido(usuarioActualizado.getApellido());
+                usuario.setCorreo(usuarioActualizado.getCorreo());
+                usuario.setPassword(usuarioActualizado.getPassword());
+                Usuario actualizado = usuarioService.save(usuario);
+                return ResponseEntity.ok(usuarioAssembler.toModel(actualizado));
+            })
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(
-        summary = "Eliminar usuario",
-        description = "Elimina un usuario existente usando su RUN"
-    )
-    @ApiResponse(
-        responseCode = "204",
-        description = "Usuario eliminado exitosamente"
-    )
-    @ApiResponse(
-        responseCode = "404",
-        description = "Usuario no encontrado"
-    )
+    @Operation(summary = "Eliminar usuario")
     @DeleteMapping("/{run}")
-    public ResponseEntity<Void> eliminar(
-        @Parameter(
-            description = "RUN del usuario a eliminar",
-            example = "12345678-9",
-            required = true
-        )
-        @PathVariable String run
-    ) {
+    public ResponseEntity<Void> eliminar(@PathVariable String run) {
         usuarioService.deleteByRun(run);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(
-        summary = "Buscar usuario por correo",
-        description = "Obtiene una lista de usuarios que coinciden con el correo proporcionado"
-    )
-    @ApiResponse(
-        responseCode = "200",
-        description = "Lista de usuarios encontrada",
-        content = @Content(schema = @Schema(implementation = Usuario[].class))
-    )
-    @ApiResponse(
-        responseCode = "404",
-        description = "No se encontraron usuarios con ese correo"
-    )
+    @Operation(summary = "Buscar usuario por correo")
     @GetMapping("/buscar")
     public ResponseEntity<CollectionModel<EntityModel<Usuario>>> buscarPorCorreo(@RequestParam String correo) {
         List<EntityModel<Usuario>> usuarios = usuarioService.findByCorreo(correo).stream()
-            .map(usuario -> EntityModel.of(usuario,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).obtenerPorRun(usuario.getRun())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).obtenerTodos()).withRel("usuarios")))
+            .map(usuarioAssembler::toModel)
             .collect(Collectors.toList());
 
         return ResponseEntity.ok(
             CollectionModel.of(usuarios,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).buscarPorCorreo(correo)).withSelfRel())
+                linkTo(methodOn(UsuarioController.class).buscarPorCorreo(correo)).withSelfRel())
         );
     }
 }
