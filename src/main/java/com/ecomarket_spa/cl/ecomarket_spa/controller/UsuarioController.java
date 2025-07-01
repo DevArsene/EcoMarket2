@@ -9,12 +9,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
@@ -157,5 +162,32 @@ public class UsuarioController {
     ) {
         usuarioService.deleteByRun(run);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Buscar usuario por correo",
+        description = "Obtiene una lista de usuarios que coinciden con el correo proporcionado"
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Lista de usuarios encontrada",
+        content = @Content(schema = @Schema(implementation = Usuario[].class))
+    )
+    @ApiResponse(
+        responseCode = "404",
+        description = "No se encontraron usuarios con ese correo"
+    )
+    @GetMapping("/buscar")
+    public ResponseEntity<CollectionModel<EntityModel<Usuario>>> buscarPorCorreo(@RequestParam String correo) {
+        List<EntityModel<Usuario>> usuarios = usuarioService.findByCorreo(correo).stream()
+            .map(usuario -> EntityModel.of(usuario,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).obtenerPorRun(usuario.getRun())).withSelfRel(),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).obtenerTodos()).withRel("usuarios")))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+            CollectionModel.of(usuarios,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UsuarioController.class).buscarPorCorreo(correo)).withSelfRel())
+        );
     }
 }

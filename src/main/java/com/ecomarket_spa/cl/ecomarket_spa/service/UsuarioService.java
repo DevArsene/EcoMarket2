@@ -32,4 +32,8 @@ public class UsuarioService {
         usuarioRepository.findByRun(run)
                 .ifPresent(usuarioRepository::delete);
     }
+
+    public List<Usuario> findByCorreo(String correo) {
+        return usuarioRepository.findByCorreo(correo);
+    }
 }
