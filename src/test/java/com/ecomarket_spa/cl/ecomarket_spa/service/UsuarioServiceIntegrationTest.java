@@ -19,7 +19,7 @@ public class UsuarioServiceIntegrationTest {
 
     @Test
     void testH2ConfiguradoCorrectamente() {
-        // Usa un RUN único de máximo 10 caracteres para cada prueba
+
         String runUnico = String.valueOf(System.currentTimeMillis() % 1_000_000_000L); // Máximo 10 dígitos
 
         Usuario usuario = new Usuario();
