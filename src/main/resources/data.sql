@@ -1,4 +1,5 @@
-
+TRUNCATE TABLE usuarios;
+TRUNCATE TABLE productos;
 INSERT INTO usuarios (run, nombre, apellido, correo, password) VALUES
 ('12345678-9', 'María', 'González', 'maria@example.com', 'clave123'),
 ('98765432-1', 'Carlos', 'Rojas', 'carlos@example.com', 'pass456'),
