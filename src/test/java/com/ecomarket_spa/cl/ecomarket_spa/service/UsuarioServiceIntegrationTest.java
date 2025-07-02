@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-@ActiveProfiles("test") // ¡Esta línea activa tu application-test.properties!
+@ActiveProfiles("test")
 @Transactional
 public class UsuarioServiceIntegrationTest {
 
