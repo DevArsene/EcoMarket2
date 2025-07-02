@@ -13,8 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest(properties = {
-        "spring.sql.init.mode=never",          // no cargar import.sql/data.sql
-        "spring.jpa.hibernate.ddl-auto=create" // esquema limpio para cada test
+        "spring.sql.init.mode=never",
+        "spring.jpa.hibernate.ddl-auto=create"
 })
 class RolRepositoryTest {
 
