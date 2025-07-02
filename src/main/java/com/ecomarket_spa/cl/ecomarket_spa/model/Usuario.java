@@ -32,6 +32,10 @@ public class Usuario {
     @Column(nullable = false)
     private String password;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_rol", nullable = false)
+    private Rol rol;
+
 }
 
 
