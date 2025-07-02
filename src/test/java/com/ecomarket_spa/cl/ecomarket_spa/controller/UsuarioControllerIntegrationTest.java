@@ -43,14 +43,12 @@ class UsuarioControllerIntegrationTest {
         nuevo.setCorreo("test@example.com");
         nuevo.setPassword("pass123");
 
-        // Crear usuario
         mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(nuevo)))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"));
 
-        // Obtener usuario por run
         mockMvc.perform(get("/api/v1/usuarios/88888888-8"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.run").value("88888888-8"))
