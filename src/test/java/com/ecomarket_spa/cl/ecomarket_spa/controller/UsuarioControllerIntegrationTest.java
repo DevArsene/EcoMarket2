@@ -1,6 +1,8 @@
 package com.ecomarket_spa.cl.ecomarket_spa.controller;
 
-import com.ecomarket_spa.cl.ecomarket_spa.model.Usuario;
+import com.ecomarket_spa.cl.ecomarket_spa.model.Rol;
+import com.ecomarket_spa.cl.ecomarket_spa.model.TipoRol;
+import com.ecomarket_spa.cl.ecomarket_spa.repository.RolRepository;
 import com.ecomarket_spa.cl.ecomarket_spa.repository.UsuarioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,47 +13,58 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test") // solo si tienes configuraciones especiales para test
+@ActiveProfiles("test")
 class UsuarioControllerIntegrationTest {
-    @Autowired
-    private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private RolRepository rolRepository;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private Rol rolPorDefecto;
 
     @BeforeEach
     void setUp() {
         usuarioRepository.deleteAll();
+        rolRepository.deleteAll();
+        rolPorDefecto = rolRepository.save(new Rol(null, TipoRol.EMPLEADO));
     }
 
     @Test
     void testCrearYObtenerUsuario() throws Exception {
-        Usuario nuevo = new Usuario();
-        nuevo.setRun("88888888-8");
-        nuevo.setNombre("Test");
-        nuevo.setApellido("User");
-        nuevo.setCorreo("test@example.com");
-        nuevo.setPassword("pass123");
+        Map<String, Object> payload = Map.of(
+                "run",      "88888888-8",
+                "nombre",   "Test",
+                "apellido", "User",
+                "correo",   "test@example.com",
+                "password", "pass123",
+                "rol",      Map.of("id", rolPorDefecto.getId())
+        );
+        String json = objectMapper.writeValueAsString(payload);
 
-        mockMvc.perform(post("/api/v1/usuarios")
+        var response = mockMvc.perform(post("/api/v1/usuarios")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(nuevo)))
+                        .content(json))
                 .andExpect(status().isCreated())
-                .andExpect(header().exists("Location"));
-
-        mockMvc.perform(get("/api/v1/usuarios/88888888-8"))
-                .andExpect(status().isOk())
+                .andExpect(header().string("Location", containsString("/api/v1/usuarios/")))
                 .andExpect(jsonPath("$.run").value("88888888-8"))
-                .andExpect(jsonPath("$.nombre").value("Test"));
+                .andExpect(jsonPath("$.rol.id").value(rolPorDefecto.getId()))
+                .andReturn();
+
+        String location = response.getResponse().getHeader("Location");
+
+        mockMvc.perform(get(location))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.run").value("88888888-8"));
     }
 }

@@ -23,6 +23,13 @@ public class RolServiceImpl implements RolService {
     }
 
     @Override
+    public Rol buscarPorId(Long id) {                                // ← nuevo
+        return repo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Rol no encontrado con id " + id));
+    }
+
+
+    @Override
     public Rol buscarPorTipo(TipoRol tipoRol) {
         return repo.findByTipoRol(tipoRol)
                 .orElseThrow(() -> new EntityNotFoundException("Rol no encontrado"));
