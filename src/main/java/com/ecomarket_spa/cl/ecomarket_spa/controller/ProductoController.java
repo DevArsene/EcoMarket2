@@ -56,7 +56,7 @@ public class ProductoController {
     }
 
     @Operation(summary = "Buscar por EAN (codigo producto)")
-    @GetMapping("/{ean}")
+    @GetMapping("/ean/{ean}")
     public ResponseEntity<EntityModel<Producto>> buscar(@PathVariable String ean) {
         try {
             Producto producto = productoService.findByEan(ean);

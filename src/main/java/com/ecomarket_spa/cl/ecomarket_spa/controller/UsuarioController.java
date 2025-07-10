@@ -95,11 +95,11 @@ public class UsuarioController {
         }
 
         Usuario existente = opt.get();
-        existente.setNombre(update.getNombre());
-        existente.setApellido(update.getApellido());
-        existente.setCorreo(update.getCorreo());
-        existente.setPassword(update.getPassword());
-        if (update.getRol() != null) {
+        if (update.getNombre() != null) existente.setNombre(update.getNombre());
+        if (update.getApellido() != null) existente.setApellido(update.getApellido());
+        if (update.getCorreo() != null) existente.setCorreo(update.getCorreo());
+        if (update.getPassword() != null) existente.setPassword(update.getPassword());
+        if (update.getRol() != null && update.getRol().getId() != null) {
             Rol rolUpd = rolService.buscarPorId(update.getRol().getId());
             existente.setRol(rolUpd);
         }
