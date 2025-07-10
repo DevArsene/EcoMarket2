@@ -5,6 +5,8 @@ import com.ecomarket_spa.cl.ecomarket_spa.model.Rol;
 import com.ecomarket_spa.cl.ecomarket_spa.model.Usuario;
 import com.ecomarket_spa.cl.ecomarket_spa.service.RolService;
 import com.ecomarket_spa.cl.ecomarket_spa.service.UsuarioService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -20,6 +22,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
+@Tag(name= "Gestion de Usuarios", description = "API para operaciones CRUD de usuarios con HATEOAS")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -34,6 +37,7 @@ public class UsuarioController {
         this.usuarioAssembler = usuarioAssembler;
     }
 
+    @Operation(summary = "Obtener todos los usuarios")
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<Usuario>>> obtenerTodos() {
         List<EntityModel<Usuario>> usuarios = usuarioService.listarTodos().stream()
@@ -46,12 +50,14 @@ public class UsuarioController {
         ));
     }
 
+    @Operation(summary = "Obtener usuario por ID")
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<Usuario>> obtenerPorId(@PathVariable Long id) {
         Usuario u = usuarioService.buscarPorId(id);
         return ResponseEntity.ok(usuarioAssembler.toModel(u));
     }
 
+    @Operation(summary = "Obtener usuario por RUN")
     @GetMapping("/run/{run}")
     public ResponseEntity<EntityModel<Usuario>> obtenerPorRun(@PathVariable String run) {
         Optional<Usuario> opt = usuarioService.findByRun(run);
@@ -61,6 +67,7 @@ public class UsuarioController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Crear un nuevo usuario")
     @PostMapping
     public ResponseEntity<EntityModel<Usuario>> crear(@RequestBody Usuario payload) {
         // se espera que el JSON traiga { "rol": { "id": <rolId> }, ... }
@@ -76,6 +83,7 @@ public class UsuarioController {
                 .body(model);
     }
 
+    @Operation(summary = "Actualizar usuario por RUN")
     @PutMapping("/run/{run}")
     public ResponseEntity<EntityModel<Usuario>> actualizarPorRun(
             @PathVariable String run,
@@ -100,12 +108,14 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioAssembler.toModel(actualizado));
     }
 
+    @Operation(summary = "Eliminar usuario por RUN")
     @DeleteMapping("/run/{run}")
     public ResponseEntity<Void> eliminarPorRun(@PathVariable String run) {
         usuarioService.deleteByRun(run);
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Buscar usuarios por correo")
     @GetMapping("/buscar")
     public ResponseEntity<CollectionModel<EntityModel<Usuario>>> buscarPorCorreo(
             @RequestParam String correo
