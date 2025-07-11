@@ -5,11 +5,8 @@ import com.ecomarket_spa.cl.ecomarket_spa.model.Producto;
 import com.ecomarket_spa.cl.ecomarket_spa.service.ProductoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.websocket.server.ServerEndpoint;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,12 +53,12 @@ public class ProductoController {
     @Operation(summary = "Buscar por EAN (codigo producto)")
     @GetMapping("/ean/{ean}")
     public ResponseEntity<EntityModel<Producto>> buscar(@PathVariable String ean) {
-        try {
-            Producto producto = productoService.findByEan(ean);
-            return ResponseEntity.ok(productoAssembler.toModel(producto));
-        } catch (Exception e) {
+        // 👇 CAMBIO AQUÍ: Lógica mejorada para manejar productos no encontrados
+        Producto producto = productoService.findByEan(ean);
+        if (producto == null) {
             return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok(productoAssembler.toModel(producto));
     }
 
     @Operation(summary = "Modificar un producto existente")
@@ -71,7 +68,7 @@ public class ProductoController {
             Producto actualizado = productoService.updateByEan(ean, producto);
             EntityModel<Producto> model = productoAssembler.toModel(actualizado);
             return ResponseEntity.ok(model);
-        } catch (Exception e) {
+        } catch (RuntimeException e) { // Es mejor capturar una excepción más específica
             return ResponseEntity.notFound().build();
         }
     }
@@ -82,7 +79,7 @@ public class ProductoController {
         try {
             productoService.deleteByEan(ean);
             return ResponseEntity.noContent().build();
-        } catch (Exception e) {
+        } catch (RuntimeException e) { // Es mejor capturar una excepción más específica
             return ResponseEntity.notFound().build();
         }
     }

@@ -13,9 +13,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Transactional // Buena práctica para que las pruebas no afecten a otras
 class ProductoCotrollerIntegrationTest {
 
     @Autowired
@@ -24,6 +26,10 @@ class ProductoCotrollerIntegrationTest {
     @Autowired
     private ProductoRepository productoRepository;
 
+    // 👇 MEJORA: Inyecta el ObjectMapper que Spring ya tiene configurado
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void limpiar() {
         productoRepository.deleteAll();
@@ -31,15 +37,15 @@ class ProductoCotrollerIntegrationTest {
 
     @Test
     void testCrearYObtenerProducto() throws Exception {
-        Producto producto = new Producto(null, "3333333333333", "Aceite", "Vegetal", 2800, null);
+        String eanDePrueba = "3333333333333";
+        Producto producto = new Producto(null, eanDePrueba, "Aceite", "Vegetal", 2800, null);
 
         mockMvc.perform(post("/api/v1/productos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper()
-                                .writeValueAsString(producto)))
+                        .content(objectMapper.writeValueAsString(producto)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/v1/productos/3333333333333"))
+        mockMvc.perform(get("/api/v1/productos/ean/" + eanDePrueba))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nombre").value("Aceite"));
     }
