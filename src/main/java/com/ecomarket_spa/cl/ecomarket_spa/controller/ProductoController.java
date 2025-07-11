@@ -21,7 +21,6 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/api/v1/productos")
-@Tag(name = "Gestión de Productos" , description = "API para operaciones CRUD de productos con HATEOAS")
 public class ProductoController {
 
     private final ProductoService productoService;
@@ -32,7 +31,6 @@ public class ProductoController {
         this.productoAssembler = productoAssembler;
     }
 
-    // 2. Usa el ensamblador en los métodos de respuesta
     @Operation(summary = "Obtener todos los productos")
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<Producto>>> listar() {
@@ -61,6 +59,29 @@ public class ProductoController {
         try {
             Producto producto = productoService.findByEan(ean);
             return ResponseEntity.ok(productoAssembler.toModel(producto));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Modificar un producto existente")
+    @PutMapping("/ean/{ean}")
+    public ResponseEntity<EntityModel<Producto>> modificar(@PathVariable String ean, @RequestBody Producto producto) {
+        try {
+            Producto actualizado = productoService.updateByEan(ean, producto);
+            EntityModel<Producto> model = productoAssembler.toModel(actualizado);
+            return ResponseEntity.ok(model);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Eliminar un producto por EAN")
+    @DeleteMapping("/ean/{ean}")
+    public ResponseEntity<Void> eliminar(@PathVariable String ean) {
+        try {
+            productoService.deleteByEan(ean);
+            return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }

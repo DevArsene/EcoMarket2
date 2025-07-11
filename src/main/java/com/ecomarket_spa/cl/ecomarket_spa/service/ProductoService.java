@@ -24,10 +24,32 @@ public class ProductoService {
     }
 
     public Producto save(Producto producto) {
+        if (producto.getEan() == null) {
+            throw new IllegalArgumentException("El EAN no puede ser nulo");
+        }
         return productoRepository.save(producto);
     }
 
-    public void delete(Long ean) {
-        productoRepository.deleteById(ean);
+    public void deleteByEan(String ean) {
+        Producto producto = productoRepository.findByEan(ean).orElse(null);
+        if (producto != null) {
+            productoRepository.delete(producto);
+        } else {
+            throw new RuntimeException("Producto no encontrado");
+        }
+    }
+
+    public Producto updateByEan(String ean, Producto producto) {
+        Producto existente = productoRepository.findByEan(ean).orElse(null);
+        if (existente == null) {
+            throw new RuntimeException("Producto no encontrado");
+        }
+        // No modificar el EAN en el update
+        if (producto.getNombre() != null) existente.setNombre(producto.getNombre());
+        if (producto.getDescripcion() != null) existente.setDescripcion(producto.getDescripcion());
+        if (producto.getPrecio() != null) existente.setPrecio(producto.getPrecio());
+        if (producto.getFechaVencimiento() != null) existente.setFechaVencimiento(producto.getFechaVencimiento());
+
+        return productoRepository.save(existente);
     }
 }
